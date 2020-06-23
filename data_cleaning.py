@@ -27,13 +27,13 @@ import sys
 def progressBar(n, tot):
     perc = int(100*n/tot)
     milli = round(100*n/tot,1)
-    print('\r{}/{} ({}%) [{}{}]'.format(n,tot,milli,u'\u25A4'*perc, '_'*(100-perc)),end='')
+    print('\r  {}/{} ({}%) [{}{}]'.format(n,tot,milli,u'\u25A4'*perc, '_'*(100-perc)),end='\r')
 
 #%% Loading the dataframe
 
 load = 1
 
-if load==0:
+def loadNew():
     df = pd.read_csv(path+'wikihowSep.csv')
 
     df.drop(columns=['overview','sectionLabel'],inplace=True)
@@ -48,14 +48,18 @@ if load==0:
 
     df = df.dropna().reset_index(drop=True)
     df['cleaned'] = 0
-    start_index = 0
+
+    return df
+
+
+if load==0:
+    df = loadNew()
 
 if load==1:
     try:
         df = pd.read_pickle(path+'df_split_transformed_June_GCP.pkl')
     except:
-        df = pd.read_pickle(path+'df_split_transformed_June_01.pkl')
-    start_index = df['cleaned'].sum()
+        df = loadNew()
 
 #%% Cleaning functions
 
@@ -104,10 +108,13 @@ for irow in range(start_index, cleanLimit):
     df.loc[irow, 'headline'] = cleanText(df.loc[irow, 'headline'])
     df.loc[irow, 'title']    = cleanText(df.loc[irow, 'title'])
     df.loc[irow, 'cleaned'] = 1
+
     if irow%10==0:
         progressBar(irow,cleanLimit)
-    if irow%100==0:
+
+    if irow%2000==0:
         df.to_pickle(path+'df_split_transformed_June_GCP.pkl')
+
 progressBar(cleanLimit,cleanLimit)
 print('Done')
 df.to_pickle(path+'df_split_transformed_June_GCP.pkl')
