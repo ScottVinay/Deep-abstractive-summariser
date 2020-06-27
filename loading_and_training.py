@@ -307,12 +307,13 @@ def main():
                 xtr_tok_modin,
                 ytr_tok_modin,
 
-                epochs = 12,
+                epochs = 20,
                 callbacks = [es,checkpoint],
                 batch_size = 64,
                 validation_data = (xcv_tok_modin, ycv_tok_modin),
                 )
 
+    return
 
 if __name__ == '__main__':
     main()
