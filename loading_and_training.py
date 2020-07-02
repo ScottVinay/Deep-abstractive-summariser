@@ -13,9 +13,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 #from nltk.corpus import stopwords # Need this?
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize as word_tokenise
 
-from tensorflow.keras.preprocessing.text import Tokenizer, one_hot
+from tensorflow.keras.preprocessing.text import Tokenizer as Tokeniser
+from tensorflow.keras.preprocessing.text import one_hot
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 from tensorflow.keras.models import Model, load_model
@@ -28,7 +29,6 @@ from nltk.translate.bleu_score import sentence_bleu as nltkbleu
 #nltk.download('punkt')
 
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-
 from sklearn.model_selection import train_test_split
 
 
@@ -41,7 +41,16 @@ import pickle
 
 import sys
 
-def get_models(load_weights='weights_03_smalltok.hdf5'):
+max_text_len = 300
+max_head_len = 30
+# TODO hyperparam doc?
+
+def get_models(
+        load_weights='weights_03_smalltok.hdf5',
+        vocab_size=None,
+        latent_dim_1=200,
+        latent_dim_2=200,
+        ):
 
     # =========================================================================
     # Main model
@@ -50,8 +59,9 @@ def get_models(load_weights='weights_03_smalltok.hdf5'):
     # Prefix L_ = layer instance
     # Prefix I_ = special input layer instance
 
-    latent_dim_1 = 200
-    latent_dim_2 = 200
+    if vocab_size==None:
+        print('Need vocab_size (from get_tokens_map)')
+        return
 
     ### Encoding layers
 
@@ -165,14 +175,17 @@ def get_models(load_weights='weights_03_smalltok.hdf5'):
 
     # Loading
     if load_weights != None:
-        model.load_weights(path+load_weights)
+        try:
+            model.load_weights(path+load_weights)
+        except:
+            pass
 
     return model, encoder_model, decoder_model, callbacks
 
 
-def gen_tokens_maps(return_tokeniser=True):
+def gen_tokens_maps(df, return_all=True):
 
-    splits = get_splits()
+    splits = get_df_splits(df)
 
     xtr = splits['xtr_df']
     ytr = splits['ytr_df']
@@ -180,11 +193,11 @@ def gen_tokens_maps(return_tokeniser=True):
     # Without setting a max num_words, there are many words in the vocabulary.
     # This results in massive embedding layers (since they need to map from R2500
     # to something smaller.)
-    tokeniser = Tokenizer(
+    tokeniser = Tokeniser(
         num_words=2000,
         oov_token = None)#'__unknown__')
 
-    # We want to set it so that the tokenizer does NOT remove _
+    # We want to set it so that the tokeniser does NOT remove _
     index__ = tokeniser.filters.index('_')
     new_filter = tokeniser.filters[:index__] + tokeniser.filters[index__ + 1:]
     tokeniser.filters = new_filter
@@ -194,14 +207,17 @@ def gen_tokens_maps(return_tokeniser=True):
     getword  = tokeniser.index_word
     getindex = tokeniser.word_index
 
-    if return_tokeniser:
-        return getword, getindex, tokeniser
-    else:
-        return getword, getindex
+    vocab_size = tokeniser.num_words + 1
 
-def get_splits(df):
-    max_text_len = 300
-    max_head_len = 30
+    if return_all:
+        return getword, getindex, vocab_size, tokeniser
+    else:
+        return getword, getindex, vocab_size
+
+def get_df_splits(df):
+    '''
+    This is only called from within get_tok_splits and gen_tokens_maps
+    '''
 
     (xtr,
      xcv,
@@ -213,15 +229,30 @@ def get_splits(df):
              random_state=0,
              shuffle=True)
 
-    _,_,tokeniser = get_tokens_map(return_tokeniser=True)
+    return {
+            'xtr_df':xtr,
+            'xcv_df':xcv,
+            'ytr_df':ytr,
+            'ycv_df':ycv,
+            }
 
-    ###
+def get_tok_splits(df, tokeniser=None):
 
-    xtr_tok = tokenizer.texts_to_sequences(xtr)
-    xcv_tok = tokenizer.texts_to_sequences(xcv)
+    if tokeniser==None:
+        _,_,_,tokeniser = get_tokens_map(return_tokeniser=True)
 
-    ytr_tok = tokenizer.texts_to_sequences(ytr)
-    ycv_tok = tokenizer.texts_to_sequences(ycv)
+    splits = get_df_splits(df)
+
+    xtr = splits['xtr_df']
+    ytr = splits['ytr_df']
+    xcv = splits['xcv_df']
+    ycv = splits['ycv_df']
+
+    xtr_tok = tokeniser.texts_to_sequences(xtr)
+    xcv_tok = tokeniser.texts_to_sequences(xcv)
+
+    ytr_tok = tokeniser.texts_to_sequences(ytr)
+    ycv_tok = tokeniser.texts_to_sequences(ycv)
 
     xtr_tok = pad_sequences(xtr_tok, maxlen=max_text_len, padding='post')
     xcv_tok = pad_sequences(xcv_tok, maxlen=max_text_len, padding='post')
@@ -235,15 +266,19 @@ def get_splits(df):
 
     #TODO Do we need to stack yxx_tok too?
 
-    vocab_size = len(tokenizer.word_index)+1
+    # vocab_size = len(tokeniser.word_index)+1    ||| OLD
 
     # Here I've changed it. Above is what is given in the tutorial, below is
     # the new one. word_index is hundreds of thousands. It is the pure index
     # of each word. However, these are cut-off at num_words. The +1 is for
     # the special token for unknown words
-    vocab_size = tokenizer.num_words + 1
 
-    end_tok = tokenizer.texts_to_sequences(['__end__'])[0][0]
+    # vocab_size is calculated AGAIN here, instead of passing in as an
+    # argument. This assumes consistency of tokeniser, which SHOULDN'T
+    # be an issue, but be aware.
+    vocab_size = tokeniser.num_words + 1
+
+    end_tok = tokeniser.texts_to_sequences(['__end__'])[0][0]
 
     def set_last_to_end(tok_list, end_tok):
         for i in range(len(tok_list)):
@@ -270,11 +305,6 @@ def get_splits(df):
                 )
 
     out = {
-            'xtr_df':xtr,
-            'ytr_df':ytr,
-            'xcv_df':xcv,
-            'ycv_df':ycv,
-
             'xtr_tok':xtr_tok,
             'ytr_tok':ytr_tok,
             'xcv_tok':xcv_tok,
@@ -290,29 +320,36 @@ def get_splits(df):
 
 
 def main():
+    print('Loading dataframe...')
     df = pd.read_pickle(path+'df_split_transformed_June_GCP.pkl')
     start_index = df['cleaned'].sum()
-    df = df[:start_index-1] # in case the earler cell was skipped
+    df = df[:start_index-1]
 
-    model, _, _, callbacks = get_models()
+    print('Getting tokeniser...')
+    getword, getindex, vocab_size, tokeniser = gen_tokens_maps(df, return_all=True)
 
-    data_modin = get_splits(df)
+    print('Getting tokens of splits...')
+    data_modin = get_tok_splits(df, tokeniser)
+
+    print('Creating model...')
+    model, _, _, callbacks = get_models(vocab_size=vocab_size)
 
     xtr_tok_modin = data_modin['xtr_tok_modin']
     ytr_tok_modin = data_modin['ytr_tok_modin']
     xcv_tok_modin = data_modin['xcv_tok_modin']
     ycv_tok_modin = data_modin['ycv_tok_modin']
 
+    print('Beginning fit...')
     history = model.fit(
                 xtr_tok_modin,
                 ytr_tok_modin,
 
                 epochs = 20,
-                callbacks = [es,checkpoint],
+                callbacks = callbacks,
                 batch_size = 64,
                 validation_data = (xcv_tok_modin, ycv_tok_modin),
                 )
-
+    print('Done')
     return
 
 if __name__ == '__main__':
