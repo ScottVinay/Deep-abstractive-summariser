@@ -358,7 +358,7 @@ def passThroughEncoder(input_text):
         split_in = split_in + ['__end__']
 
     new_text = ' '.join(split_in)
-    input_toks = tokenizer.texts_to_sequences([new_text])
+    input_toks = tokeniser.texts_to_sequences([new_text])
     input_toks = pad_sequences(np.array(input_toks), max_text_len, padding='post')
 
     e_out, e_h, e_c = encoder_model.predict(input_toks)
@@ -379,7 +379,10 @@ def neaten(text):
 
 # Greedy
 
-def translate(input_text, sampler=suppressedArgmax, damping=10):
+def translate(input_text,
+              sampler=suppressedArgmax,
+              damping=10):
+
     e_out, e_h, e_c = passThroughEncoder(input_text)
 
     decoder_input = np.zeros((1,1))
@@ -496,7 +499,7 @@ def beamTranslate(
 
 # Show solutions
 
-def random_translate(submode=0):
+def random_translate(xcv, ycv, submode=0):
     i=np.random.randint(0,7850) # = len xcv
 
     print(i)
@@ -512,69 +515,76 @@ def random_translate(submode=0):
     print('\n')
 
     print('Generated headline:')
-    # Parameter of translate types
-    print( translate(xcv.loc[xcv.index[i]], damping=1) )
+    # Include parameter of translate types
+    print( translate(
+            xcv.loc[xcv.index[i]],
+            damping=10)
+        )
 
     return
 
+#####
 
-def main(mode,submode=0):
-    print('Loading dataframe...')
-    df = pd.read_pickle(path+'df_split_transformed_June_GCP.pkl')
-    start_index = df['cleaned'].sum()
-    df = df[:start_index-1]
+if len(sys.argv) == 1:
+    print('Mode required')
+    sys.exit()
 
-    print('Getting tokeniser...')
-    getword, getindex, vocab_size, tokeniser = gen_tokens_maps(df, return_all=True)
+mode = sys.argv[1]
 
-    print('Getting tokens of splits...')
-    data_modin = get_tok_splits(df, tokeniser)
+if mode.lower() in ['lat','0']:
+    mode = 0
 
-    print('Creating model...')
-    model, _, _, callbacks = get_models(vocab_size=vocab_size)
+if mode.lower() in ['translate','1']:
+    mode = 1
 
-    xtr_tok_modin = data_modin['xtr_tok_modin']
-    ytr_tok_modin = data_modin['ytr_tok_modin']
-    xcv_tok_modin = data_modin['xcv_tok_modin']
-    ycv_tok_modin = data_modin['ycv_tok_modin']
+submode = 0
 
-    if mode==0:
-        print('Beginning fit...')
-        history = model.fit(
-                    xtr_tok_modin,
-                    ytr_tok_modin,
+#####
 
-                    epochs = 20,
-                    callbacks = callbacks,
-                    batch_size = 64,
-                    validation_data = (xcv_tok_modin, ycv_tok_modin),
-                    )
-        print('Done')
+print('\nLoading dataframe...')
+df = pd.read_pickle(path+'df_split_transformed_June_GCP.pkl')
+start_index = df['cleaned'].sum()
+df = df[:start_index-1]
 
-    elif mode==1:
-        while True:
-            command = input('...')
-            if command.lower() in ['quit', 'exit', 'c']:
-                break
-            random_translate(submode)
+print('Finding splits...') # Technically duplicated, but not efficient to remove
+splits = get_df_splits(df)
+xcv = splits['xcv_df']
+ycv = splits['ycv_df']
 
-    return
+print('Getting tokeniser...')
+getword, getindex, vocab_size, tokeniser = gen_tokens_maps(df, return_all=True)
 
+print('Getting tokens of splits...')
+data_modin = get_tok_splits(df, tokeniser)
 
-if __name__ == '__main__':
-    if len(sys.argv) == 1:
-        print('Mode required')
-        sys.exit()
+print('Creating model...')
+model, encoder_model, decoder_model, callbacks = get_models(vocab_size=vocab_size)
 
-    mode = sys.argv[1]
+xtr_tok_modin = data_modin['xtr_tok_modin']
+ytr_tok_modin = data_modin['ytr_tok_modin']
+xcv_tok_modin = data_modin['xcv_tok_modin']
+ycv_tok_modin = data_modin['ycv_tok_modin']
 
-    if mode.lower() in ['lat','0']:
-        mode = 0
+if mode==0:
+    print('Beginning fit...')
+    history = model.fit(
+                xtr_tok_modin,
+                ytr_tok_modin,
 
-    if mode.lower() in ['translate','1']:
-        mode = 1
+                epochs = 20,
+                callbacks = callbacks,
+                batch_size = 64,
+                validation_data = (xcv_tok_modin, ycv_tok_modin),
+                )
+    print('Done')
 
-    main(mode)
+elif mode==1:
+    while True:
+        command = input('...')
+        if command.lower() in ['quit', 'exit', 'c']:
+            break
+        random_translate(xcv, ycv, submode)
+
 
 
 
