@@ -499,29 +499,104 @@ def beamTranslate(
 
 # Show solutions
 
-def random_translate(xcv, ycv, submode=0):
+def random_translate(printer=0, submode=0, damping=20):
     i=np.random.randint(0,7850) # = len xcv
 
-    print(i)
-    print('\n')
+    intext    = neaten(xcv.loc[xcv.index[i]])
+    headline  = neaten(ycv.loc[xcv.index[i]])
+    generated = beamTranslate(intext,damping=damping)
+
+    if printer==0:
+        return intext, headline, generated
+
+    elif printer==1:
+        print(i)
+        print('\n')
+
+        print('Text:')
+        print(intext)
+        print('\n')
+
+        print('Actual headline:')
+        print(headline)
+        print('\n')
+
+        print('Generated headline:')
+        # Include parameter of translate types
+        print(generated)
+        return
+
+#%%
+
+def bleu(ref,gen,weights=[1,1,1,1]):
+    #TODO - remove all punc in both ref and gen
+    # Weird way the nltk works:
+    # https://stackoverflow.com/questions/40542523/nltk-corpus-level-bleu-vs-sentence-level-bleu-score
+    ref = ref.lower()
+    gen = gen.lower()
+    weights = np.array(weights)
+    weights = weights/weights.sum()
+
+    def get_n_toks(toks,n):
+        out = []
+        splits = toks.split(' ')
+        for i in range(0 , len(splits)-n+1):
+            list_ngram = splits[i:i+n]
+            string_ngram = ' '.join(list_ngram)
+            out.append(string_ngram)
+        return out
+
+    def bleu_n(reflist, genlist):
+        numerator   = 0
+        denominator = 0
+
+        print(genlist) ##
+        for tok in set(genlist):
+
+            this_num = min(
+                reflist.count(tok),
+                genlist.count(tok)
+                )
+            this_den = genlist.count(tok)
+
+            numerator += this_num
+            denominator += this_den
+        return numerator / denominator
+
+    ans = 0
+    for n in range(1,5):
+        if min(
+                len(ref.split(' ')),
+                len(gen.split(' '))
+                ) < n:
+            break # Avoid looking for n_grams on sentences without n words.
+
+        reftoks = get_n_toks(ref,n)
+        gentoks = get_n_toks(gen,n)
+        pn = bleu_n(reftoks,gentoks)
+        if weights[n-1]!=0:
+
+            if pn==0:
+                # This conditional on pn is to avoid log(0) errors.
+                pn = 0.0001
+
+            ans += weights[n-1] * np.log(pn)
+    ans = np.exp(ans)
+
+    r = len(get_n_toks(ref,1))
+    g = len(get_n_toks(gen,1))
+    if g <= r:
+        mod = np.exp(1 - r/g)
+    else:
+        mod = 1
+
+    return ans * mod
+# Rouge: rouge-L, rouge-1, rouge-n, rouge-s
+# F1
+
+#%%
 
 
-    print('Text:')
-    print(neaten(xcv.loc[xcv.index[i]]))
-    print('\n')
-
-    print('Actual headline:')
-    print(neaten(ycv.loc[xcv.index[i]]))
-    print('\n')
-
-    print('Generated headline:')
-    # Include parameter of translate types
-    print( translate(
-            xcv.loc[xcv.index[i]],
-            damping=10)
-        )
-
-    return
 
 #####
 
@@ -536,6 +611,9 @@ if mode.lower() in ['lat','0']:
 
 if mode.lower() in ['translate','1']:
     mode = 1
+
+if mode.lower() in ['bleu_test','2']:
+    mode = 2
 
 submode = 0
 
@@ -583,8 +661,29 @@ elif mode==1:
         command = input('...')
         if command.lower() in ['quit', 'exit', 'c']:
             break
-        random_translate(xcv, ycv, submode)
+        random_translate(printer=1, submode=submode)
 
+elif mode==2:
+
+    test_size = 100
+    #TODO runtime options
+
+    bleu_avg = 0
+    d=20
+    for i in range(test_size):
+        print(i)
+        _, ref, gen = random_translate(printer=0, submode=submode, damping=d)
+        bleu_avg += bleu_n(reg,gen)
+
+    print()
+    print(bleu_avg/test_size )
+
+
+
+
+
+# Note, we are using lots of things as global var names. Easier than passing
+# every single thing back and forth
 
 
 
