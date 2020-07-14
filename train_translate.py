@@ -644,6 +644,9 @@ xcv_tok_modin = data_modin['xcv_tok_modin']
 ycv_tok_modin = data_modin['ycv_tok_modin']
 
 if mode==0:
+    inp = input('This is fit mode. Are you sure you want to continue? yes/no')
+    if inp != 'yes':
+        sys.exit()
     print('Beginning fit...')
     history = model.fit(
                 xtr_tok_modin,
@@ -673,7 +676,7 @@ elif mode==2:
     for i in range(test_size):
         print(i)
         _, ref, gen = random_translate(printer=0, submode=submode, damping=d)
-        bleu_avg += bleu_n(reg,gen)
+        bleu_avg += bleu(ref,gen)
 
     print()
     print(bleu_avg/test_size )
