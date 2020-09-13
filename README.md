@@ -30,12 +30,11 @@ __Generated headlines:__
 
 --------------------------------------------------------------------------------------------------------------
 
-Text: Stock up well before thanksgiving so that you don't have to do all of your shopping at once. Things like pumpkin pie filling or canned cranberry sauce are more readily available before november and can be purchased at most grocery stores. Things like plastic storage bags, aluminum foil, and sealable storage containers are also great things to pick up in advance.
+__Text:__ Stock up well before thanksgiving so that you don't have to do all of your shopping at once. Things like pumpkin pie filling or canned cranberry sauce are more readily available before november and can be purchased at most grocery stores. Things like plastic storage bags, aluminum foil, and sealable storage containers are also great things to pick up in advance.
 
-Actual headline: Purchase non-perishable food early.
+__Actual headline:__ Purchase non-perishable food early.
 
-Generated headlines:
-
+__Generated headlines:__
     Gather your supplies
     Make a list of items you need
     Make a list of items you want to use
