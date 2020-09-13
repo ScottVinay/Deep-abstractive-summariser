@@ -12,7 +12,7 @@ Here I will note some things I have included that may not be found in other impl
 
 • I coded in a beam-translator, but I noticed that by the definitions of the Bayesian probabilities, it was likely to favour short sentences. I included an optional parameter to make it so that the probability of a given beam was conditional on the probability that a sentence of that length was found.
 
-====================================================================================================
+==========================================================================
 
 ## Some sample outcomes:
 
