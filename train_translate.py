@@ -1,3 +1,6 @@
+#TODO - Limit on length of sentences generated
+
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -6,44 +9,49 @@ Created on Tue Jun 23 09:58:32 2020
 @author: Scott
 """
 
-path = '' #TODO Make this globally accessible
+#%% Modules
 
+# Fundamental
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-#from nltk.corpus import stopwords # Need this?
-from nltk.tokenize import word_tokenize as word_tokenise
+import random, time, re, pickle, sys
+
+# Preprocessing
+from sklearn.preprocessing import OneHotEncoder, LabelEncoder
+from sklearn.model_selection import train_test_split
 
 from tensorflow.keras.preprocessing.text import Tokenizer as Tokeniser
 from tensorflow.keras.preprocessing.text import one_hot
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
+# Modelling
 from tensorflow.keras.models import Model, load_model
 from tensorflow.keras.layers import Input, LSTM, Dense, Embedding, TimeDistributed
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
-import nltk
-from nltk.translate.bleu_score import sentence_bleu as nltkbleu
+
+#%% Global variables
+
+# If we include stopword removal, we'll need this:
+#from nltk.corpus import stopwords
 #nltk.download('stopwords')
 #nltk.download('punkt')
 
-from sklearn.preprocessing import OneHotEncoder, LabelEncoder
-from sklearn.model_selection import train_test_split
-
-
-import random
-import math
-import time
-
-import re
-import pickle
-
-import sys
-
+# max_text_len and max_head_len are global parameters used in both the model
+# and the tokeniser. Eventaully these will likely be put into a separate .json
+# file of myperparameters, but it's ok here for now.
 max_text_len = 300
 max_head_len = 30
-# TODO hyperparam doc?
+
+# Path gives the local path to model weights and the dataframe.
+path = ''
+
+#%% Setup models
+
+# This section is for functions that arrange the data into the right form for
+# passing into the models, as well as creating the models themselves.
 
 def get_models(
         load_weights='weights_03_smalltok.hdf5',
@@ -51,6 +59,10 @@ def get_models(
         latent_dim_1=200,
         latent_dim_2=200,
         ):
+    # Get models creates two linked LSTM models, one as an encoder and one as
+    # a decoder. The output 'model' is the single keras object comprising both
+    # of these, used when fitting. The encoder and decoder are used separately
+    # when finding runtime translations.
 
     # =========================================================================
     # Main model
@@ -62,6 +74,11 @@ def get_models(
     if vocab_size==None:
         print('Need vocab_size (from get_tokens_map)')
         return
+
+    # I find it easiest to conceptualise the construction of complex neural nets
+    # in keras by creating all the layers first, and then describing their
+    # connections. This is slightly different to the way it is usually written,
+    # which is all as a single line.
 
     ### Encoding layers
 
@@ -86,12 +103,14 @@ def get_models(
 
     enc_embedded = L_enc_embed(I_enc_in)
     enc_out, state_h, state_c = L_enc_lstm(enc_embedded)
-    # If return_sequences = True, then enc_out = state_h?
+    # If return_sequences = True, then enc_out != state_h
+    # (use for multi-layer LSTMs)
 
     ### Decoding layers
 
-    #I_dec_in = Input(shape = (max_head_len - 1,))
+    # Incorrect: I_dec_in = Input(shape = (max_head_len - 1,))
     I_dec_in = Input(name='dec_ins',shape = (None,))
+    # Shape = None allows for variable input lengths
 
     L_dec_embed = Embedding(
         vocab_size,
@@ -102,17 +121,17 @@ def get_models(
         )
 
     L_dec_lstm = LSTM(
-                      latent_dim_2,
-                      return_sequences=True,
-                      return_state=True,
-                      name='Dec_lstm',
-                      )
+                  latent_dim_2, # Must be the same as in encoding layer
+                  return_sequences=True,
+                  return_state=True,
+                  name='Dec_lstm',
+                  )
 
     #TODO TimeDistributed = Necessary? Learn about this!
     L_dec_dense = TimeDistributed(
-                                  Dense(vocab_size, activation = 'softmax'),
-                                  name='Time_Dist',
-                                  )
+                      Dense(vocab_size, activation = 'softmax'),
+                      name='Time_Dist',
+                      )
 
     ### Decoding connections
 
@@ -364,17 +383,25 @@ def passThroughEncoder(input_text):
     e_out, e_h, e_c = encoder_model.predict(input_toks)
     return e_out, e_h, e_c
 
-def neaten(text):
-    text = text.replace(' __cm__', ',')
-    text = text.replace(' __fs__', '.')
-    text = text.replace('__start__ ', '')
-    text = text.replace(' __end__', '')
-    text = text.strip(' ')
-    text = text.strip('\n')
-    sents = text.split('. ')
-    if len(text)>1:
-        text = text[0].upper()+text[1:]
-    text = '. '.join(i.capitalize() for i in sents)
+def neaten(text, evalmode=0):
+    if evalmode==0:
+        text = text.replace(' __cm__', ',')
+        text = text.replace(' __fs__', '.')
+        text = text.replace('__start__ ', '')
+        text = text.replace(' __end__', '')
+        text = text.strip(' ')
+        text = text.strip('\n')
+        sents = text.split('. ')
+        if len(text)>1:
+            text = text[0].upper()+text[1:]
+        text = '. '.join(i.capitalize() for i in sents)
+
+    if evalmode==1:
+        text = text.replace(',','')
+        text = text.replace('.','')
+        text = text.replace("'",'')
+        text = text.replace('"','')
+
     return text
 
 # Greedy
@@ -550,7 +577,6 @@ def bleu(ref,gen,weights=[1,1,1,1]):
         numerator   = 0
         denominator = 0
 
-        print(genlist) ##
         for tok in set(genlist):
 
             this_num = min(
@@ -609,10 +635,10 @@ mode = sys.argv[1]
 if mode.lower() in ['lat','0']:
     mode = 0
 
-if mode.lower() in ['translate','1']:
+elif mode.lower() in ['translate','1']:
     mode = 1
 
-if mode.lower() in ['bleu_test','2']:
+elif mode.lower() in ['bleu_test','2']:
     mode = 2
 
 submode = 0
@@ -644,6 +670,9 @@ xcv_tok_modin = data_modin['xcv_tok_modin']
 ycv_tok_modin = data_modin['ycv_tok_modin']
 
 if mode==0:
+    inp = input('This is fit mode. Are you sure you want to continue? yes/no')
+    if inp != 'yes':
+        sys.exit()
     print('Beginning fit...')
     history = model.fit(
                 xtr_tok_modin,
@@ -661,22 +690,30 @@ elif mode==1:
         command = input('...')
         if command.lower() in ['quit', 'exit', 'c']:
             break
-        random_translate(printer=1, submode=submode)
+        random_translate(printer=1, submode=submode, damping=7)
 
 elif mode==2:
 
-    test_size = 100
+    damp_range = np.arange(5, 10, 1)
+    test_size = 500
     #TODO runtime options
 
-    bleu_avg = 0
-    d=20
-    for i in range(test_size):
-        print(i)
-        _, ref, gen = random_translate(printer=0, submode=submode, damping=d)
-        bleu_avg += bleu_n(reg,gen)
+    bleu_by_damp = []
 
-    print()
-    print(bleu_avg/test_size )
+    for d in damp_range:
+        bleu_avg = 0
+        for i in range(test_size):
+            _, ref, gen = random_translate(printer=0, submode=submode, damping=d)
+            ref = neaten(ref, evalmode=1)
+            gen = neaten(gen, evalmode=1)
+            bleu_avg += bleu(ref,gen)
+
+        bleu_avg = bleu_avg/test_size
+        print(d, bleu_avg)
+        bleu_by_damp.append([d, bleu_avg])
+
+    best_d = sorted(bleu_by_damp, key=lambda x: x[1])[-1][0]
+    print('Best damp in range = ',best_d)
 
 
 
