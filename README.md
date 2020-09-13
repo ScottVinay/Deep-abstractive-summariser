@@ -21,6 +21,7 @@ __Text:__ The minimum requirements to become a licensed real estate agent in the
 __Actual headline:__ Obtain your ged
 
 __Generated headlines:__
+
     Get a license
     Get a degree
     Get a college degree
@@ -32,6 +33,7 @@ __Text:__ Stock up well before thanksgiving so that you don't have to do all of 
 __Actual headline:__ Purchase non-perishable food early.
 
 __Generated headlines:__
+
     Gather your supplies
     Make a list of items you need
     Make a list of items you want to use
@@ -43,6 +45,7 @@ __Text:__ A large part of being mature and responsible enough to live on your ow
 __Actual headline:__ Create a budget
 
 __Generated headlines:__
+
     Make a budget
     Make a budget for your budget
     Make a list of your budget
@@ -54,6 +57,7 @@ __Text:__ Heat and cold can help to relieve pain and muscle tension in your neck
 __Actual headline:__ Apply a hot or cold compress to your head
 
 __Generated headlines:__
+
     Take a shower
     Take a warm bath
     Take a warm shower
