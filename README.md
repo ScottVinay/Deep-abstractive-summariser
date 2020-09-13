@@ -1,21 +1,31 @@
 # Deep-abstractive-summariser
-An ongoing project to develop a sequence-to-sequence model that can summarise text. This is currently working on data from WikiHow, but with an aim to move to generating titles for scientific papers.
 
-Note: This is still in the early stages, but operational. The notebook is intended to work on Google Colab and draws data from my Drive. The first few cells may be modified to allow it to work on another machine.
+This is a project I built to test my hand at automatic sequence-to-sequence summarisation. This was trained on WikiHow articles, with the aim of predicting a section's headline from the main text. Some decent results can be seen below.
 
-Some sample outcomes:
+## Novel contributions
 
+Here I will note some things I have included that may not be found in other implementations of deep translators, so that they may help anyone else trying a similar problem.
 
+• I noticed that many of the sentences produced were too short. This was because the end token was more common than most other words, and appeared in more diverse contexts, so was predicted more often than it should be. To counter this, I included a suppression hyperparameter, which suppressed the end token by some factor, _F_.
 
-Text: The minimum requirements to become a licensed real estate agent in the state of montana are that you must be at least 18 years of age and have a high school diploma, or an equivalent, such as a ged. If you do not have a high school diploma or a an equivalent, you will need to obtain a ged before completing your pre license educationcommunity colleges offer classes that will help prepare you to pass the ged
+• In order to choose the best value for _F_, a metric was needed to determine how close a test-set prediction was in meaning to the actual headline. Simply using accuracy on the predicted word set was not appropriate, so I hand-coded in a BLEU score to act as a metric for hyper-parameter optimisation.
 
-Actual headline: Obtain your ged
+• I coded in a beam-translator, but I noticed that by the definitions of the Bayesian probabilities, it was likely to favour short sentences. I included an optional parameter to make it so that the probability of a given beam was conditional on the probability that a sentence of that length was found.
 
-Generated headlines:
+==============================================================================================================
 
-    Get a license
-    Get a degree
-    Get a college degree
+## Some sample outcomes:
+
+__Text:__ The minimum requirements to become a licensed real estate agent in the state of montana are that you must be at least 18 years of age and have a high school diploma, or an equivalent, such as a ged. If you do not have a high school diploma or a an equivalent, you will need to obtain a ged before completing your pre license educationcommunity colleges offer classes that will help prepare you to pass the ged
+
+__Actual headline:__ Obtain your ged
+
+__Generated headlines:__
+• Get a license
+• Get a degree
+• Get a college degree
+
+--------------------------------------------------------------------------------------------------------------
 
 Text: Stock up well before thanksgiving so that you don't have to do all of your shopping at once. Things like pumpkin pie filling or canned cranberry sauce are more readily available before november and can be purchased at most grocery stores. Things like plastic storage bags, aluminum foil, and sealable storage containers are also great things to pick up in advance.
 
