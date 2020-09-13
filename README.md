@@ -21,12 +21,9 @@ __Text:__ The minimum requirements to become a licensed real estate agent in the
 __Actual headline:__ Obtain your ged
 
 __Generated headlines:__
-
-• Get a license
-
-• Get a degree
-
-• Get a college degree
+    Get a license
+    Get a degree
+    Get a college degree
 
 --------------------------------------------------------------------------------------------------------------
 
@@ -38,24 +35,25 @@ __Generated headlines:__
     Gather your supplies
     Make a list of items you need
     Make a list of items you want to use
+    
+--------------------------------------------------------------------------------------------------------------
 
-Text: A large part of being mature and responsible enough to live on your own is understanding how much money you will have going out, what youll have coming in, and how much is left over at the end. A budget can be extremely useful, because then you know exactly where your money is going, and whether you can afford certain things or notfor instance, if you know your budget only allots 40 for food per week, you will immediately know that you shouldnt spend 10 of that on a single fast food meal.
+__Text:__ A large part of being mature and responsible enough to live on your own is understanding how much money you will have going out, what youll have coming in, and how much is left over at the end. A budget can be extremely useful, because then you know exactly where your money is going, and whether you can afford certain things or notfor instance, if you know your budget only allots 40 for food per week, you will immediately know that you shouldnt spend 10 of that on a single fast food meal.
 
-Actual headline: Create a budget
+__Actual headline:__ Create a budget
 
-Generated headlines:
-
+__Generated headlines:__
     Make a budget
     Make a budget for your budget
     Make a list of your budget
+    
+--------------------------------------------------------------------------------------------------------------
 
-Text: Heat and cold can help to relieve pain and muscle tension in your neck and headapply a moist hot towel or warm compress to the back of your neck or on your forehead. You can also take a long, hot shower, being sure to run water down your head and on the back of your neck. Wrap an ice pack in a towel and place it on the back of your neck or on your forehead.
+__Text:__ Heat and cold can help to relieve pain and muscle tension in your neck and headapply a moist hot towel or warm compress to the back of your neck or on your forehead. You can also take a long, hot shower, being sure to run water down your head and on the back of your neck. Wrap an ice pack in a towel and place it on the back of your neck or on your forehead.
 
-Actual headline: Apply a hot or cold compress to your head
+__Actual headline:__ Apply a hot or cold compress to your head
 
-Generated headlines:
-
+__Generated headlines:__
     Take a shower
     Take a warm bath
     Take a warm shower
-
